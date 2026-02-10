@@ -1,0 +1,31 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Create Post{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">Create New Post</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" name="title" class="form-control" placeholder="Enter title" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea name="content" class="form-control" rows="6" placeholder="Write your content here..."
+                    required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Publish</button>
+            <a href="/" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
