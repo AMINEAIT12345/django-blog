@@ -1,80 +1,49 @@
-{% extends 'blog/base.html' %}
+from django.shortcuts import render, get_object_or_404, redirect
+from django.core.paginator import Paginator
+from .models import Post
+from .forms import CommentForm
 
-{% block title %}Home | My Blog{% endblock %}
 
-{% block content %}
+def home(request):
+    query = request.GET.get('q')
 
-<h1 class="mb-4">Latest Posts</h1>
+    posts_list = Post.objects.all().order_by('-id')
 
-{% if posts %}
-    {% for post in posts %}
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body">
-                <h3 class="card-title">{{ post.title }}</h3>
+    if query:
+        posts_list = posts_list.filter(title__icontains=query)
 
-                <p class="text-muted small">
-                    Published on {{ post.created_at|date:"M d, Y" }}
-                </p>
+    paginator = Paginator(posts_list, 5)
+    page_number = request.GET.get('page')
+    posts = paginator.get_page(page_number)
 
-                <p class="card-text">
-                    {{ post.content|truncatewords:25 }}
-                </p>
+    return render(request, 'blog/home.html', {
+        'posts': posts,
+        'query': query
+    })
 
-                <a href="{% url 'blog:post_detail' post.slug %}" 
-                   class="btn btn-primary">
-                    Read more
-                </a>
 
-            </div>
-        </div>
-    {% endfor %}
+def post_detail(request, slug):
+    post = get_object_or_404(Post, slug=slug)
+    comments = post.comments.all().order_by('-created_at')
 
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.post = post
+                comment.user = request.user
+                comment.save()
+                return redirect('blog:post_detail', slug=post.slug)
+        else:
+            return redirect('login')
+    else:
+        form = CommentForm()
 
-            {% if posts.has_previous %}
-                <li class="page-item">
-                    <a class="page-link"
-                       href="?page=1{% if query %}&q={{ query }}{% endif %}">
-                        First
-                    </a>
-                </li>
+    context = {
+        'post': post,
+        'comments': comments,
+        'form': form
+    }
 
-                <li class="page-item">
-                    <a class="page-link"
-                       href="?page={{ posts.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                        Previous
-                    </a>
-                </li>
-            {% endif %}
-
-            <li class="page-item active">
-                <span class="page-link">
-                    Page {{ posts.number }} of {{ posts.paginator.num_pages }}
-                </span>
-            </li>
-
-            {% if posts.has_next %}
-                <li class="page-item">
-                    <a class="page-link"
-                       href="?page={{ posts.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                        Next
-                    </a>
-                </li>
-
-                <li class="page-item">
-                    <a class="page-link"
-                       href="?page={{ posts.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
-                        Last
-                    </a>
-                </li>
-            {% endif %}
-
-        </ul>
-    </nav>
-
-{% else %}
-    <p class="text-muted">No posts available.</p>
-{% endif %}
-
-{% endblock %}
+    return render(request, 'blog/post_detail.html', context)
