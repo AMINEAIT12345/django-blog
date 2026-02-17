@@ -20,8 +20,33 @@ def home(request):
     })
 
 
+from .forms import CommentForm
+from django.shortcuts import redirect
+
 def post_detail(request, slug):
     post = get_object_or_404(Post, slug=slug)
-    return render(request, 'blog/post_detail.html', {
-        'post': post
-    })
+    comments = post.comments.all().order_by('-created_at')
+
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.post = post
+                comment.user = request.user
+                comment.save()
+                return redirect('blog:post_detail', slug=post.slug)
+        else:
+            return redirect('login')
+
+    else:
+        form = CommentForm()
+
+    context = {
+        'post': post,
+        'comments': comments,
+        'form': form
+    }
+
+    return render(request, 'blog/post_detail.html', context)
+
