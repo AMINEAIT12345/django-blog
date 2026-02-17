@@ -24,11 +24,11 @@
                    class="btn btn-primary">
                     Read more
                 </a>
+
             </div>
         </div>
     {% endfor %}
 
-    <!--  Pagination -->
     <nav aria-label="Page navigation" class="mt-4">
         <ul class="pagination justify-content-center">
 
